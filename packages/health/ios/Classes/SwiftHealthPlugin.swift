@@ -148,12 +148,16 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         
         /// Handle writeAudiogram
         else if (call.method.elementsEqual("writeAudiogram")){
-            try! writeAudiogram(call: call, result: result)
+            if #available(iOS 13.0, *) {
+                try! writeAudiogram(call: call, result: result)
+            }
         }
         
         /// Handle writeWorkoutData
         else if (call.method.elementsEqual("writeWorkoutData")){
-            try! writeWorkoutData(call: call, result: result)
+            if #available(iOS 13.0, *) {
+                try! writeWorkoutData(call: call, result: result)
+            }
         }
         
         /// Handle hasPermission
@@ -278,6 +282,7 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         })
     }
     
+    @available(iOS 13.0, *)
     func writeAudiogram(call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         guard let arguments = call.arguments as? NSDictionary,
               let frequencies = (arguments["frequencies"] as? Array<Double>),
@@ -325,7 +330,8 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
             }
         })
     }
-    
+
+    @available(iOS 13.0, *)
     func writeWorkoutData(call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         guard let arguments = call.arguments as? NSDictionary,
               let activityType = (arguments["activityType"] as? String),
@@ -466,34 +472,33 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
                     result(dictionaries)
                 }
                 
-            case let (samplesAudiogram as [HKAudiogramSample]) as Any:
-                let dictionaries = samplesAudiogram.map { sample -> NSDictionary in
-                    var frequencies = [Double]()
-                    var leftEarSensitivities = [Double]()
-                    var rightEarSensitivities = [Double]()
-                    for samplePoint in sample.sensitivityPoints {
-                        frequencies.append(samplePoint.frequency.doubleValue(for: HKUnit.hertz()))
-                        leftEarSensitivities.append(samplePoint.leftEarSensitivity!.doubleValue(for: HKUnit.decibelHearingLevel()))
-                        rightEarSensitivities.append(samplePoint.rightEarSensitivity!.doubleValue(for: HKUnit.decibelHearingLevel()))
-                    }
-                    return [
-                        "uuid": "\(sample.uuid)",
-                        "frequencies": frequencies,
-                        "leftEarSensitivities": leftEarSensitivities,
-                        "rightEarSensitivities": rightEarSensitivities,
-                        "date_from": Int(sample.startDate.timeIntervalSince1970 * 1000),
-                        "date_to": Int(sample.endDate.timeIntervalSince1970 * 1000),
-                        "source_id": sample.sourceRevision.source.bundleIdentifier,
-                        "source_name": sample.sourceRevision.source.name
-                    ]
-                }
-                DispatchQueue.main.async {
-                    result(dictionaries)
-                }
-                
             default:
                 if #available(iOS 14.0, *), let ecgSamples = samplesOrNil as? [HKElectrocardiogram] {
                     let dictionaries = ecgSamples.map(fetchEcgMeasurements)
+                    DispatchQueue.main.async {
+                        result(dictionaries)
+                    }
+                } else if #available(iOS 13.0, *), let samplesAudiogram = samplesOrNil as? [HKAudiogramSample] {
+                    let dictionaries = samplesAudiogram.map { sample -> NSDictionary in
+                        var frequencies = [Double]()
+                        var leftEarSensitivities = [Double]()
+                        var rightEarSensitivities = [Double]()
+                        for samplePoint in sample.sensitivityPoints {
+                            frequencies.append(samplePoint.frequency.doubleValue(for: HKUnit.hertz()))
+                            leftEarSensitivities.append(samplePoint.leftEarSensitivity!.doubleValue(for: HKUnit.decibelHearingLevel()))
+                            rightEarSensitivities.append(samplePoint.rightEarSensitivity!.doubleValue(for: HKUnit.decibelHearingLevel()))
+                        }
+                        return [
+                            "uuid": "\(sample.uuid)",
+                            "frequencies": frequencies,
+                            "leftEarSensitivities": leftEarSensitivities,
+                            "rightEarSensitivities": rightEarSensitivities,
+                            "date_from": Int(sample.startDate.timeIntervalSince1970 * 1000),
+                            "date_to": Int(sample.endDate.timeIntervalSince1970 * 1000),
+                            "source_id": sample.sourceRevision.source.bundleIdentifier,
+                            "source_name": sample.sourceRevision.source.name
+                        ]
+                    }
                     DispatchQueue.main.async {
                         result(dictionaries)
                     }
@@ -620,7 +625,6 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         unitDict[MILLIMETER_OF_MERCURY] = HKUnit.millimeterOfMercury()
         unitDict[CENTIMETER_OF_WATER] = HKUnit.centimeterOfWater()
         unitDict[ATMOSPHERE] = HKUnit.atmosphere()
-        unitDict[DECIBEL_A_WEIGHTED_SOUND_PRESSURE_LEVEL] = HKUnit.decibelAWeightedSoundPressureLevel()
         unitDict[SECOND] = HKUnit.second()
         unitDict[MILLISECOND] = HKUnit.secondUnit(with: .milli)
         unitDict[MINUTE] = HKUnit.minute()
@@ -633,8 +637,6 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         unitDict[DEGREE_CELSIUS] = HKUnit.degreeCelsius()
         unitDict[DEGREE_FAHRENHEIT] = HKUnit.degreeFahrenheit()
         unitDict[KELVIN] = HKUnit.kelvin()
-        unitDict[DECIBEL_HEARING_LEVEL] = HKUnit.decibelHearingLevel()
-        unitDict[HERTZ] = HKUnit.hertz()
         unitDict[SIEMEN] = HKUnit.siemen()
         unitDict[INTERNATIONAL_UNIT] = HKUnit.internationalUnit()
         unitDict[COUNT] = HKUnit.count()
@@ -655,7 +657,6 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         workoutActivityTypeMap["BASEBALL"] = .baseball
         workoutActivityTypeMap["BASKETBALL"] = .basketball
         workoutActivityTypeMap["CRICKET"] = .cricket
-        workoutActivityTypeMap["DISC_SPORTS"] = .discSports
         workoutActivityTypeMap["HANDBALL"] = .handball
         workoutActivityTypeMap["HOCKEY"] = .hockey
         workoutActivityTypeMap["LACROSSE"] = .lacrosse
@@ -685,7 +686,6 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         workoutActivityTypeMap["STAIR_CLIMBING"] = .stairClimbing
         workoutActivityTypeMap["STAIRS"] = .stairs
         workoutActivityTypeMap["STEP_TRAINING"] = .stepTraining
-        workoutActivityTypeMap["FITNESS_GAMING"] = .fitnessGaming
         workoutActivityTypeMap["BARRE"] = .barre
         workoutActivityTypeMap["YOGA"] = .yoga
         workoutActivityTypeMap["MIND_AND_BODY"] = .mindAndBody
@@ -731,6 +731,11 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         
         // Set up iOS 13 specific types (ordinary health data types)
         if #available(iOS 13.0, *) {
+            workoutActivityTypeMap["FITNESS_GAMING"] = .fitnessGaming
+            workoutActivityTypeMap["DISC_SPORTS"] = .discSports
+            unitDict[DECIBEL_A_WEIGHTED_SOUND_PRESSURE_LEVEL] = HKUnit.decibelAWeightedSoundPressureLevel()
+            unitDict[DECIBEL_HEARING_LEVEL] = HKUnit.decibelHearingLevel()
+            unitDict[HERTZ] = HKUnit.hertz()
             dataTypesDict[ACTIVE_ENERGY_BURNED] = HKSampleType.quantityType(forIdentifier: .activeEnergyBurned)!
             dataTypesDict[AUDIOGRAM] = HKSampleType.audiogramSampleType()
             dataTypesDict[BASAL_ENERGY_BURNED] = HKSampleType.quantityType(forIdentifier: .basalEnergyBurned)!

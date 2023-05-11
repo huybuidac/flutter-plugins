@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:health_ios12/health.dart';
 
 void main() => runApp(HealthApp());
 
@@ -63,8 +63,7 @@ class _HealthAppState extends State<HealthApp> {
     // requesting access to the data types before reading them
     // note that strictly speaking, the [permissions] are not
     // needed, since we only want READ access.
-    bool requested =
-        await health.requestAuthorization(types, permissions: permissions);
+    bool requested = await health.requestAuthorization(types, permissions: permissions);
     print('requested: $requested');
 
     // If we are trying to read Step Count, Workout, Sleep or other data that requires
@@ -78,12 +77,9 @@ class _HealthAppState extends State<HealthApp> {
     if (requested) {
       try {
         // fetch health data
-        List<HealthDataPoint> healthData =
-            await health.getHealthDataFromTypes(yesterday, now, types);
+        List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(yesterday, now, types);
         // save all the new data points (only the first 100)
-        _healthDataList.addAll((healthData.length < 100)
-            ? healthData
-            : healthData.sublist(0, 100));
+        _healthDataList.addAll((healthData.length < 100) ? healthData : healthData.sublist(0, 100));
       } catch (error) {
         print("Exception in getHealthDataFromTypes: $error");
       }
@@ -96,8 +92,7 @@ class _HealthAppState extends State<HealthApp> {
 
       // update the UI to display the results
       setState(() {
-        _state =
-            _healthDataList.isEmpty ? AppState.NO_DATA : AppState.DATA_READY;
+        _state = _healthDataList.isEmpty ? AppState.NO_DATA : AppState.DATA_READY;
       });
     } else {
       print("Authorization not granted");
@@ -132,25 +127,21 @@ class _HealthAppState extends State<HealthApp> {
       HealthDataAccess.READ_WRITE,
       // HealthDataAccess.READ_WRITE,
     ];
-    bool? hasPermissions =
-        await HealthFactory.hasPermissions(types, permissions: rights);
+    bool? hasPermissions = await HealthFactory.hasPermissions(types, permissions: rights);
     if (hasPermissions == false) {
       await health.requestAuthorization(types, permissions: permissions);
     }
 
     // Store a count of steps taken
     _nofSteps = Random().nextInt(10);
-    bool success = await health.writeHealthData(
-        _nofSteps.toDouble(), HealthDataType.STEPS, earlier, now);
+    bool success = await health.writeHealthData(_nofSteps.toDouble(), HealthDataType.STEPS, earlier, now);
 
     // Store a height
-    success &=
-        await health.writeHealthData(1.93, HealthDataType.HEIGHT, earlier, now);
+    success &= await health.writeHealthData(1.93, HealthDataType.HEIGHT, earlier, now);
 
     // Store a Blood Glucose measurement
     _mgdl = Random().nextInt(10) * 1.0;
-    success &= await health.writeHealthData(
-        _mgdl, HealthDataType.BLOOD_GLUCOSE, now, now);
+    success &= await health.writeHealthData(_mgdl, HealthDataType.BLOOD_GLUCOSE, now, now);
 
     // Store a workout eg. running
     success &= await health.writeWorkoutData(
@@ -245,8 +236,7 @@ class _HealthAppState extends State<HealthApp> {
             return ListTile(
               title: Text(
                   "${p.typeString}: ${(p.value as WorkoutHealthValue).totalEnergyBurned} ${(p.value as WorkoutHealthValue).totalEnergyBurnedUnit?.typeToString()}"),
-              trailing: Text(
-                  '${(p.value as WorkoutHealthValue).workoutActivityType.typeToString()}'),
+              trailing: Text('${(p.value as WorkoutHealthValue).workoutActivityType.typeToString()}'),
               subtitle: Text('${p.dateFrom} - ${p.dateTo}'),
             );
           }
